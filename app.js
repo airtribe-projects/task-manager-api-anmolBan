@@ -7,17 +7,23 @@ const port = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const tasks = [];
+const tasks = [{id: 1, title: "Set up environment", description: "Install Node.js, npm, and git", completed: true, createdAt: "2024-01-01T10:00:00Z"}];
 
 app.get('/tasks', (req, res) => {
-    const { sort } = req.query;
+    const { sort, completed } = req.query;
 
-    let sortedTasks = [...tasks];
-    if (sort === 'createdAt') {
-        sortedTasks.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    let filteredTasks = [...tasks];
+
+    if (completed !== undefined) {
+        const isCompleted = completed === 'true';
+        filteredTasks = filteredTasks.filter((t) => t.completed === isCompleted);
     }
 
-    return res.json(sortedTasks);
+    if (sort === 'createdAt') {
+        filteredTasks.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    }
+
+    return res.json(filteredTasks);
 });
 
 const getTaskSchema = zod.number();
@@ -29,15 +35,6 @@ app.get('/tasks/:id', (req, res) => {
     if(!parsedTaskId.success){
         return res.status(400).json({
             message: "Invalid task ID."
-        });
-    }
-
-    if(taskId === 1){
-        return res.json({
-            id: 1,
-            title: "Set up environment",
-            description: "Install Node.js, npm, and git",
-            completed: true,
         });
     }
 
@@ -54,11 +51,6 @@ app.get('/tasks/:id', (req, res) => {
     }
 
     return res.json(task);
-});
-
-app.get("/tasks?completed=true", (req, res) => {
-    const completedTasks = tasks.filter((t) => t.completed === true);
-    return res.json(completedTasks);
 });
 
 const createTaskSchema = zod.object({
@@ -120,7 +112,10 @@ app.put('/tasks/:id', (req, res) => {
         });
     }
 
-    tasks[taskIndex] = updatedTask;
+    tasks[taskIndex].title = updatedTask.title;
+    tasks[taskIndex].description = updatedTask.description;
+    tasks[taskIndex].completed = updatedTask.completed;
+    tasks[taskIndex].priority = updatedTask.priority;
 
     return res.status(200).json({
         message: "Task updated successfully."
@@ -135,12 +130,6 @@ app.delete('/tasks/:id', (req, res) => {
     if(!parsedTaskId.success){
         return res.status(400).json({
             message: "Invalid task ID."
-        });
-    }
-
-    if(tasksId === 1){
-        return res.status(200).json({
-            message: "Task deleted"
         });
     }
 
